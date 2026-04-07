@@ -1,5 +1,7 @@
 # Git Shred — Adaptive Diet Adjustment Engine
 
+🔗 **[Live App](https://git-shred.streamlit.app/)**
+
 A Python-based diet planning and adjustment tool that combines exercise science domain knowledge with software development. Built as a portfolio project to demonstrate the intersection of health analytics and programming.
 
 ## What It Does
