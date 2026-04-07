@@ -1,7 +1,14 @@
-import sqlite3 
+import psycopg2
+import streamlit as st
 
 def create_connection():
-    conn = sqlite3.connect("git_shred.db")
+    conn = psycopg2.connect(
+        host=st.secrets["database"]["host"],
+        port=st.secrets["database"]["port"],
+        database=st.secrets["database"]["database"],
+        user=st.secrets["database"]["user"],
+        password=st.secrets["database"]["password"]
+    )
     return conn
 
 def create_tables():
@@ -10,13 +17,13 @@ def create_tables():
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id SERIAL PRIMARY KEY,
             email TEXT UNIQUE,
             start_date DATE,
             age INTEGER,
             sex INTEGER,
             height_in INTEGER,
-            weight_lbs REAL,
+            weight_lbs FLOAT,
             activity_level INTEGER,
             checkin_day INTEGER
         )
@@ -24,48 +31,52 @@ def create_tables():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS plans (
-            plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id SERIAL PRIMARY KEY,
             user_id INTEGER,
-            goal_weight_lbs REAL,
+            goal_weight_lbs FLOAT,
             timeframe_weeks INTEGER,
-            tdee REAL,
-            rate_of_loss REAL,
+            tdee FLOAT,
+            rate_of_loss FLOAT,
             calories INTEGER,
-            protein_g REAL,
-            carbs_g REAL,
-            fat_g REAL,
+            protein_g FLOAT,
+            carbs_g FLOAT,
+            fat_g FLOAT,
             prescribed_steps INTEGER,
             FOREIGN KEY (user_id) REFERENCES users (user_id)
         )
     """)
 
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS check_ins (
-        check_in_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        check_in_date DATE,
-        avg_weight_lbs REAL,
-        total_weeks_in_deficit INTEGER,
-        days_adherent INTEGER,
-        avg_step_count INTEGER,
-        strength_subj INTEGER,
-        fatigue_subj INTEGER,
-        lbs_to_go REAL,
-        weekly_rol REAL,
-        cumulative_rol REAL,
-        calories_over REAL,
-        off_the_rails INTEGER,
-        recalculated_bmr REAL,
-        FOREIGN KEY (user_id) REFERENCES users (user_id)
-    )
+        CREATE TABLE IF NOT EXISTS check_ins (
+            check_in_id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            check_in_date DATE,
+            avg_weight_lbs FLOAT,
+            total_weeks_in_deficit INTEGER,
+            days_adherent INTEGER,
+            avg_step_count INTEGER,
+            strength_subj INTEGER,
+            fatigue_subj INTEGER,
+            lbs_to_go FLOAT,
+            weekly_rol FLOAT,
+            cumulative_rol FLOAT,
+            calories_over FLOAT,
+            off_the_rails INTEGER,
+            recalculated_bmr FLOAT,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
     """)
+
+    conn.commit()
+    conn.close()
 
 def insert_user(user_data):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO users (start_date, age, sex, height_in, weight_lbs, activity_level, checkin_day, email)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING user_id
     """, (
         user_data["start_date"],
         user_data["age"],
@@ -76,8 +87,8 @@ def insert_user(user_data):
         user_data["checkin_day"],
         user_data["email"]
     ))
+    user_id = cursor.fetchone()[0]
     conn.commit()
-    user_id = cursor.lastrowid
     conn.close()
     return user_id
 
@@ -85,7 +96,7 @@ def get_user_by_email(email):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT * FROM users WHERE email = ?
+        SELECT * FROM users WHERE email = %s
     """, (email,))
     result = cursor.fetchone()
     conn.close()
@@ -95,7 +106,7 @@ def get_plan_by_user_id(user_id):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT * FROM plans WHERE user_id = ?
+        SELECT * FROM plans WHERE user_id = %s
         ORDER BY plan_id DESC
         LIMIT 1
     """, (user_id,))
@@ -117,14 +128,12 @@ def get_plan_by_user_id(user_id):
         }
     return None
 
-
-
 def insert_plan(plan_data, user_id):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO plans (user_id, goal_weight_lbs, timeframe_weeks, tdee, rate_of_loss, calories, protein_g, carbs_g, fat_g)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         user_id,
         plan_data["goal_weight"],
@@ -144,15 +153,14 @@ def update_plan(plan_id, new_cal=None, new_steps=None):
     cursor = conn.cursor()
     if new_cal:
         cursor.execute("""
-            UPDATE plans SET calories = ? WHERE plan_id = ?
+            UPDATE plans SET calories = %s WHERE plan_id = %s
         """, (new_cal, plan_id))
     if new_steps:
         cursor.execute("""
-            UPDATE plans SET prescribed_steps = ? WHERE plan_id = ?
+            UPDATE plans SET prescribed_steps = %s WHERE plan_id = %s
         """, (new_steps, plan_id))
     conn.commit()
     conn.close()
-
 
 def insert_checkin(checkin_data, calculated_data):
     conn = create_connection()
@@ -164,7 +172,7 @@ def insert_checkin(checkin_data, calculated_data):
             lbs_to_go, weekly_rol, cumulative_rol, calories_over,
             off_the_rails, recalculated_bmr
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         checkin_data["user_id"],
         checkin_data["check_in_date"],
@@ -189,7 +197,7 @@ def get_last_two_checkins(user_id): ## pulls previous two rate of loss across we
     cursor = conn.cursor()
     cursor.execute("""
         SELECT weekly_rol FROM check_ins
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY check_in_date DESC
         LIMIT 2
     """, (user_id,))
@@ -202,16 +210,13 @@ def get_last_checkin(user_id):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT check_in_date FROM check_ins
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY check_in_date DESC
         LIMIT 1
     """, (user_id,))
     result = cursor.fetchone()
     conn.close()
     return result
-
-
-
 
 if __name__ == "__main__":
     create_tables()

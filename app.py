@@ -39,7 +39,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 ## initialize database
-create_tables()
+## initialize database once per session
+if "db_initialized" not in st.session_state:
+    create_tables()
+    st.session_state["db_initialized"] = True
 
 ## page config
 st.set_page_config(
