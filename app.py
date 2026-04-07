@@ -1,14 +1,56 @@
 import streamlit as st
 from database import create_tables, get_user_by_email, get_plan_by_user_id, get_last_checkin
 
+## styling
+st.markdown("""
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background-color: #F8F9FA;
+    }
+    
+    [data-testid="stHeader"] {
+        background-color: #F8F9FA;
+    }
+
+    h1 {
+        color: #1A1A1A !important;
+        font-weight: 700 !important;
+    }
+    
+    h2, h3 {
+        color: #2D5016 !important;
+        font-weight: 600 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        color: #1A1A1A !important;
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.85rem !important;
+        color: #6B7280 !important;
+        font-weight: 500 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 ## initialize database
 create_tables()
 
 ## page config
-st.set_page_config(page_title="Git Shred", page_icon="💪")
+st.set_page_config(
+    page_title="Git Shred",
+    page_icon="💪",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 ## title
-st.title("Git Shred")
+st.title("💪 Git Shred")
 st.subheader("Adaptive Diet Coaching System")
 
 ## login
@@ -19,20 +61,29 @@ if email:
     email = email.strip().lower()
     user = get_user_by_email(email)
 
-
-    if user: ##session_state 
+    if user: ##session_state
         user_id = user[0]
         st.session_state["user_id"] = user_id
         st.session_state["user"] = user
         plan_data = get_plan_by_user_id(user_id)  ## fetch plan data for all menu options
         st.divider()
 
-        choice = st.radio("What would you like to do?", [
-            "Weekly Check-in",
-            "View Current Plan"
-        ])
+        ## initialize menu choice in session state
+        if "menu_choice" not in st.session_state:
+            st.session_state["menu_choice"] = None
 
-        if choice == "Weekly Check-in": ## check in form
+        ## two buttons side by side
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("📋 Weekly Check-in", use_container_width=True):
+                st.session_state["menu_choice"] = "checkin"
+        with col_btn2:
+            if st.button("📊 View Current Plan", use_container_width=True):
+                st.session_state["menu_choice"] = "plan"
+
+        choice = st.session_state["menu_choice"]
+
+        if choice == "checkin": ## check in form
             from checkin import calculate_checkin
             from database import insert_checkin, update_plan
             from engine import run_engine
@@ -60,12 +111,19 @@ if email:
             scheduled_day_name = day_names[checkin_day_num]
             today_name = day_names[today_day_num]
 
+            ## initialize override states
+            if "override_day" not in st.session_state:
+                st.session_state["override_day"] = False
+            if "override_weekly" not in st.session_state:
+                st.session_state["override_weekly"] = False
+
             ## check if today is their checkin day
-            if today_day_num != checkin_day_num:
+            if today_day_num != checkin_day_num and not st.session_state["override_day"]:
                 st.warning(f"Your scheduled check-in day is **{scheduled_day_name}**. Today is **{today_name}**.")
-                override = st.checkbox("Check in anyway")
-                if not override:
-                    st.stop()
+                if st.button("Check in anyway", key="btn_override_day"):
+                    st.session_state["override_day"] = True
+                    st.rerun()
+                st.stop()
 
             ## check if they already checked in this week
             last_checkin = get_last_checkin(user[0])
@@ -75,11 +133,12 @@ if email:
                     from datetime import datetime
                     last_date = datetime.strptime(last_date, "%Y-%m-%d").date()
                 days_since_last = (today - last_date).days
-                if days_since_last < 6:
+                if days_since_last < 6 and not st.session_state["override_weekly"]:
                     st.warning(f"You checked in {days_since_last} days ago. Check-ins are once weekly.")
-                    override_weekly = st.checkbox("Check in anyway ", key="weekly_override")
-                    if not override_weekly:
-                        st.stop()
+                    if st.button("Check in anyway", key="btn_override_weekly"):
+                        st.session_state["override_weekly"] = True
+                        st.rerun()
+                    st.stop()
 
             with st.form("checkin_form"):
                 avg_weight_lbs = st.number_input("Average weight this week (lbs)", min_value=80, max_value=600, step=1, value=None, placeholder="Enter your average weight")
@@ -95,7 +154,6 @@ if email:
                 fatigue_subj = st.slider("Fatigue this week (1-10, 10 being most fatigued)", min_value=1, max_value=10, value=5)
 
                 days_adherent = st.number_input("How many days did you stick to your plan? (0-7)", min_value=0, max_value=7, step=1, value=None, placeholder="Enter number of days")
-
 
                 if_off_plan = st.selectbox("Were you off plan any days?", ["No — fully adherent", "Yes — I know roughly how many calories over", "Yes — I went completely off the rails"])
 
@@ -163,21 +221,49 @@ if email:
                     elif msg_type == "info":
                         st.info(msg_text)
 
-        elif choice == "View Current Plan":
+        elif choice == "plan":
             plan = get_plan_by_user_id(user[0])
             if plan:
                 st.subheader("Your Current Plan")
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.metric("Daily Calories", f"{plan['cal_rx']} kcal")
-                    st.metric("Protein", f"{plan['protein_rx']}g")
-                    st.metric("Carbs", f"{plan['carb_rx']}g")
-                    st.metric("Fat", f"{plan['fat_rx']}g")
+                    st.markdown(f"""
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Daily Calories</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['cal_rx'])} kcal</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Protein</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['protein_rx'])}g</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Carbs</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['carb_rx'])}g</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Fat</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['fat_rx'])}g</p>
+                        </div>
+                    """, unsafe_allow_html=True)
                 with col2:
-                    st.metric("TDEE", f"{plan['tdee']} kcal")
-                    st.metric("Rate of Loss", f"{plan['rate_of_loss_pct']}% BW/week")
-                    st.metric("Goal Weight", f"{plan['goal_weight']} lbs")
-                    st.metric("Timeframe", f"{plan['weeks_to_goal']} weeks")
+                    st.markdown(f"""
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">TDEE</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['tdee'])} kcal</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Rate of Loss</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{round(plan['rate_of_loss_pct'], 2)}% BW/week</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Goal Weight</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan['goal_weight'])} lbs</p>
+                        </div>
+                        <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                            <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Timeframe</p>
+                            <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{plan['weeks_to_goal']} weeks</p>
+                        </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.error("No plan found.")
     else:
@@ -202,7 +288,7 @@ if email:
             ])
 
             goal_weight = st.number_input("Goal weight (lbs)", min_value=80, max_value=600, step=1, value=None, placeholder="Enter your goal weight in pounds", format="%d")
-            weeks_to_goal = st.number_input("Timeframe (weeks) — enter 0 if no timeframe", min_value=0, max_value=104, step=1, value=None, placeholder="Enter your timefram in weeks.")
+            weeks_to_goal = st.number_input("Timeframe (weeks) — enter 0 if no timeframe", min_value=0, max_value=104, step=1, value=None, placeholder="Enter your timeframe in weeks.")
 
             st.write("**Check-in Day**")
             checkin_day = st.selectbox("Select your weekly check-in day", [
@@ -223,7 +309,7 @@ if email:
             from database import insert_user, insert_plan
 
             ## parse selectbox values to integers
-            sex_int = 1 if sex =='Male' else 2
+            sex_int = 1 if sex == 'Male' else 2
             activity_int = int(activity_level[0]) ## [0 calls the first part of string, "1-sedentary"]
             checkin_int = int(checkin_day[0])
 
@@ -251,12 +337,40 @@ if email:
 
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("Daily Calories", f"{plan_data['cal_rx']} kcal")
-                st.metric("Protein", f"{plan_data['protein_rx']}g")
-                st.metric("Carbs", f"{plan_data['carb_rx']}g")
-                st.metric("Fat", f"{plan_data['fat_rx']}g")
+                st.markdown(f"""
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Daily Calories</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['cal_rx'])} kcal</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Protein</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['protein_rx'])}g</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Carbs</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['carb_rx'])}g</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Fat</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['fat_rx'])}g</p>
+                    </div>
+                """, unsafe_allow_html=True)
             with col2:
-                st.metric("TDEE", f"{plan_data['tdee']} kcal")
-                st.metric("Rate of Loss", f"{round(plan_data['rate_of_loss_pct'], 2)}% BW/week")
-                st.metric("Goal Weight", f"{plan_data['goal_weight']} lbs")
-                st.metric("Timeframe", f"{plan_data['weeks_to_goal']} weeks")
+                st.markdown(f"""
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">TDEE</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['tdee'])} kcal</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Rate of Loss</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{round(plan_data['rate_of_loss_pct'], 2)}% BW/week</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Goal Weight</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{int(plan_data['goal_weight'])} lbs</p>
+                    </div>
+                    <div style="background:white; border:1px solid #E5E7EB; border-radius:12px; padding:1.5rem; margin-bottom:0.5rem;">
+                        <p style="color:#6B7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 0.3rem 0;">Timeframe</p>
+                        <p style="font-size:1.6rem; font-weight:700; color:#1A1A1A; margin:0;">{plan_data['weeks_to_goal']} weeks</p>
+                    </div>
+                """, unsafe_allow_html=True)

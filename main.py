@@ -4,10 +4,46 @@ from datetime import date
 
 def get_user_inputs():
     email = input("What is your email adress? (user ID) ")
-    age =int(input("How old are you? "))
-    sex = int(input("Are you male or female? ")) ## M = 1, F = 2
-    height_in = int(input('How tall are you (in)? '))
-    weight = float(input('What is your weight? '))
+    while True:
+        try: 
+            age =int(input("How old are you? "))
+            if age <10 or age > 100:
+                print("Please enter a valid age.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    while True:
+        try:
+            sex = int(input("Are you male or female? (M=1, F=2) ")) ## M = 1, F = 2
+            if sex != 1 and sex != 2:
+                print("Please enter either '1' or '2' ")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    while True:
+        try:
+            height_in = int(input('How tall are you (in)? '))
+            if height_in < 50 or height_in > 84:
+                print("Please enter a valid height in inches.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    while True:
+        try:
+            weight = float(input('What is your weight? '))
+            if weight < 80 or weight > 600:
+                print("Please enter a valid height in inches.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+    
     start_date = date.today()
     print('''
           What is your activity level?
@@ -18,10 +54,28 @@ def get_user_inputs():
           5 - Extremely active (12,500+ steps/ day) 
 
         ''')
-    activity_level = int(input('What is your daily activity level? '))
-    goal_weight = float(input('What is your goal weight(lbs):? '))
-    weeks_to_goal = int(input('''How many weeks would you like to diet: 
-                              Note: If no timeframe type "0"'''))
+    while True:
+        try:
+            activity_level = int(input('What is your daily activity level? '))
+            if activity_level > 5 or activity_level < 1:
+                print("Please enter a number between 1 and 5.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    while True:
+        try:
+            goal_weight = float(input('What is your goal weight(lbs):? '))
+            if goal_weight < 80 or goal_weight > 600:
+                print("Please enter a valid goal weight in lbs.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+    
+
+
     print("""
     Select your check-in day:
     1 - Monday
@@ -32,8 +86,29 @@ def get_user_inputs():
     6 - Saturday
     7 - Sunday
     """)
-    checkin_day = int(input("Enter the number for your check-in day: "))
 
+    while True:
+        try:
+            weeks_to_goal = int(input('''How many weeks would you like to diet: 
+                                         Note: If no timeframe type "0"'''))
+            if weeks_to_goal < 0:
+                print('''Please enter a number greater than 0.
+                    If you do not have a desired timeline enter "0".''')
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+
+    while True:
+        try:
+            checkin_day = int(input("Enter the number for your check-in day: "))
+            if checkin_day > 7 or checkin_day < 1:
+                print("Please enter a number between 1 and 7.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+    
     return { ##returns data as dictionary
         "age": age,
         "sex": sex,
@@ -136,7 +211,16 @@ What would you like to do?
 1 - Weekly check-in
 2 - View current plan
         """)
-        choice = int(input("Enter 1 or 2: "))
+        while True:
+            try:
+                choice = int(input("Enter 1 or 2: "))
+                if choice != 1 and choice != 2:
+                    print ("Please enter either 1 or 2")
+                    continue
+                break
+            except ValueError:
+                print("Please enter a valid number.")
+            
 
         if choice == 1: ## imports needed variables 
             from checkin import get_checkin_inputs, calculate_checkin
