@@ -184,6 +184,32 @@ def insert_checkin(checkin_data, calculated_data):
     conn.commit()
     conn.close()
 
+def get_last_two_checkins(user_id): ## pulls previous two rate of loss across week
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT weekly_rol FROM check_ins
+        WHERE user_id = ?
+        ORDER BY check_in_date DESC
+        LIMIT 2
+    """, (user_id,))
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def get_last_checkin(user_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT check_in_date FROM check_ins
+        WHERE user_id = ?
+        ORDER BY check_in_date DESC
+        LIMIT 1
+    """, (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
 
 
 
