@@ -1,15 +1,16 @@
 import psycopg2
-import streamlit as st
+import os
 
 def create_connection():
     conn = psycopg2.connect(
-        host=st.secrets["database"]["host"],
-        port=st.secrets["database"]["port"],
-        database=st.secrets["database"]["database"],
-        user=st.secrets["database"]["user"],
-        password=st.secrets["database"]["password"]
+        host=os.environ.get("DB_HOST"),
+        port=os.environ.get("DB_PORT"),
+        database=os.environ.get("DB_NAME"),
+        user=os.environ.get("DB_USER"),
+        password=os.environ.get("DB_PASSWORD")
     )
     return conn
+
 
 def create_tables():
     conn = create_connection()
@@ -214,6 +215,14 @@ def get_last_checkin(user_id):
         ORDER BY check_in_date DESC
         LIMIT 1
     """, (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+def get_user_by_id(user_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
     result = cursor.fetchone()
     conn.close()
     return result

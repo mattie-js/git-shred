@@ -135,12 +135,7 @@ def calculate_checkin(checkin_data, user_data, plan_data):
     ## get last weeks avg weight from database
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT avg_weight_lbs FROM check_ins
-        WHERE user_id = ?
-        ORDER BY check_in_date DESC
-        LIMIT 1
-    """, (checkin_data["user_id"],))
+    cursor.execute("SELECT avg_weight_lbs FROM check_ins WHERE user_id = %s ORDER BY check_in_date DESC LIMIT 1", (checkin_data["user_id"],))
     result = cursor.fetchone() ##result = last weeks bw
     conn.close()
 
