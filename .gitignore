@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 git_shred.db
 .streamlit/secrets.toml
+.env

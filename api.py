@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from main import calculate_tdee, calculate_plan
-from database import insert_user, insert_plan, get_user_by_email,get_plan_by_user_id, get_user_by_id, create_connection
+from database import insert_user, insert_plan, get_user_by_email,get_plan_by_user_id, get_user_by_id 
+from database import create_connection, update_daily_log, save_training_template, get_training_template
+
 
 
 app = FastAPI()
@@ -30,8 +32,21 @@ class UserCreate(BaseModel):
     weeks_to_goal: int
     checkin_day: int
 
+class DailyLogUpdate(BaseModel):
+    actual_calories: int | None = None
+    actual_protein: float | None = None
+    step_count: int | None = None
+    cardio_minutes: int | None = None
+    cardio_type: str | None = None
+    training_session: str | None = None
+    notes: str | None = None
+    status: str | None = None
+
 class LoginRequest(BaseModel):
     email: str
+
+class TrainingTemplateCreate(BaseModel):
+    schedule: dict
 
 ## ── endpoints ───────────────────────────────────────────────────
 
@@ -87,7 +102,7 @@ def login(request: LoginRequest):
 
 from checkin import calculate_checkin
 from engine import run_engine
-from database import insert_checkin, update_plan, get_last_checkin
+from database import insert_checkin, update_plan, get_last_checkin, get_or_create_daily_log
 
 ## ── additional request models ────────────────────────────────────
 
@@ -177,3 +192,31 @@ def get_progress(user_id: int):
             for row in rows
         ]
     }
+
+@app.get("/daily-log/today/{user_id}")
+def get_today_log(user_id: int):
+    log = get_or_create_daily_log(user_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="No plan found for this user")
+    return log
+
+@app.put("/daily-log/{log_id}")
+def update_log(log_id: int, update: DailyLogUpdate):
+    result = update_daily_log(log_id, update.model_dump())
+    if not result:
+        raise HTTPException(status_code=404, detail="Log not found")
+    return result
+
+@app.post("/training-template/{user_id}")
+def create_training_template(user_id: int, template: TrainingTemplateCreate):
+    result = save_training_template(user_id, template.schedule)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to save template")
+    return result
+
+@app.get("/training-template/{user_id}")
+def get_template(user_id: int):
+    result = get_training_template(user_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="No training template found")
+    return result
