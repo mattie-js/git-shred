@@ -267,7 +267,12 @@ def get_or_create_daily_log(user_id):
             "cardio_minutes": row[12],
             "cardio_type": row[13],
             "training_session": row[14],
-            "notes": row[15]
+            "notes": row[15],
+            "is_adherent": row[16],
+            "training_complete": row[17],
+            "nutrition_complete": row[18],
+            "cardio_complete": row[19],
+            "steps_complete": row[20]
         }
 
     # Step 4: if it doesn't exist, look up today's scheduled session
