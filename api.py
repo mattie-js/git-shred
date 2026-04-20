@@ -102,6 +102,7 @@ def login(request: LoginRequest):
     return {
         "user_id": user_id,
         "email": user[1],
+        "checkin_day": user[8],
         "plan": plan
     }
 
