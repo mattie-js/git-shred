@@ -145,7 +145,7 @@ def calculate_tdee(user_data):
     return round(tdee, 2)
 
 
-def calculate_plan(user_data, tdee):
+def calculate_plan(user_data, tdee, agressive_rate=2):
     weight = user_data["weight"]
     goal_weight = user_data["goal_weight"]
     weeks_to_goal = user_data["weeks_to_goal"]
@@ -156,10 +156,6 @@ def calculate_plan(user_data, tdee):
         print('You need to lose', round((weight - goal_weight) / weeks_to_goal, 2), 'lbs per week to reach your goal!')
 
     else:
-        agressive_rate = int(input('''How agressive would you like to diet: 
-                               Type: 1 for easy
-                                     2 for moderate
-                                     3 for agressive'''))
         if agressive_rate == 1:
             rate_of_loss_pct = .5
         elif agressive_rate == 2:
@@ -168,8 +164,8 @@ def calculate_plan(user_data, tdee):
             rate_of_loss_pct = 1
         else:
             rate_of_loss_pct = .75
-        print('You should try to lose', round(weight*(rate_of_loss_pct/100), 2), 'lbs per week to reach your goal!')
-    
+
+            
     weekly_deficit = (rate_of_loss_pct/100) *weight*3500
     cal_rx = tdee-(weekly_deficit/7)
     protein_rx = weight

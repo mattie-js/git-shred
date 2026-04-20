@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { useUser } from "../context/UserContext";
 
 export default function PlanCreated() {
   const { plan, userId } = useLocalSearchParams();
+  const { setUserId } = useUser();
   const p = JSON.parse(plan as string);
 
   return (
@@ -35,8 +37,11 @@ export default function PlanCreated() {
         <Text style={styles.value}>{parseInt(p.goal_weight)} lbs</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push({ pathname: "/dashboard", params: { userId }})}>
-        <Text style={styles.buttonText}>Go to Dashboard</Text>
+      <TouchableOpacity style={styles.button} onPress={() => {
+        setUserId(Number(userId));
+        router.replace({ pathname: "/(tabs)/checkin" });
+      }}>
+        <Text style={styles.buttonText}>Let's Go 💪</Text>
       </TouchableOpacity>
     </View>
   );

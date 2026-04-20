@@ -2,11 +2,13 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { loginUser } from "../services/api";
 import { router } from "expo-router";
+import { useUser } from "../context/UserContext";
 
 
 export default function HomeScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setUserId } = useUser();
 
   const handleLogin = async () => {
       if (!email) {
@@ -18,13 +20,10 @@ export default function HomeScreen() {
       setLoading(false);
 
       if (result.user_id) {
-        router.push({ pathname: "/dashboard", params: { userId: result.user_id }});
-      } else {
-        router.push({ pathname: "/create-plan", params: { email } });
+        setUserId(result.user_id);
+        router.replace({ pathname: "/(tabs)/checkin" });
       }
-    };
-
-
+    } 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>💪 Git Shred</Text>

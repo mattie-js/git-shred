@@ -31,3 +31,31 @@ export const getProgress = async (userId) => {
   const response = await fetch(`${BASE_URL}/progress/${userId}`);
   return response.json();
 };
+
+export const getTodayLog = async (userId) => {
+  const response = await fetch(`${BASE_URL}/daily-log/today/${userId}`);
+  return response.json();
+};
+
+export const updateDailyLog = async (logId, updates) => {
+  const response = await fetch(`${BASE_URL}/daily-log/${logId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates)
+  });
+  return response.json();
+};
+
+export const getTrainingTemplate = async (userId) => {
+  const response = await fetch(`${BASE_URL}/training-template/${userId}`);
+  return response.json();
+};
+
+export const saveTrainingTemplate = async (userId, schedule) => {
+  const response = await fetch(`${BASE_URL}/training-template/${userId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schedule })
+  });
+  return response.json();
+};

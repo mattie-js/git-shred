@@ -9,7 +9,7 @@ export default function Dashboard() {
       <Text style={styles.title}>💪 Git Shred</Text>
       <Text style={styles.subtitle}>Welcome back!</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push({ pathname: "/checkin", params: { userId }})}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push({ pathname: "/(tabs)/checkin", params: { userId }})}>
         <Text style={styles.buttonText}>📋 Weekly Check-in</Text>
       </TouchableOpacity>
 

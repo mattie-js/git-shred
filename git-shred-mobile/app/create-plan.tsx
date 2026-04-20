@@ -33,6 +33,7 @@ export default function CreatePlan() {
       checkin_day: checkinDay
     });
     setLoading(false);
+    console.log("API result:", JSON.stringify(result));
 
     if (result.user_id) {
       router.push({ pathname: "/plan-created", params: { plan: JSON.stringify(result.plan), userId: result.user_id }});
