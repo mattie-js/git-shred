@@ -335,6 +335,11 @@ def update_daily_log(log_id, updates):
             training_session = %s,
             notes = %s,
             status = %s,
+            is_adherent = %s,
+            training_complete = %s,
+            nutrition_complete = %s,
+            cardio_complete = %s,
+            steps_complete = %s,
             updated_at = now()
         WHERE id = %s
         RETURNING *
@@ -347,6 +352,11 @@ def update_daily_log(log_id, updates):
         updates.get("training_session"),
         updates.get("notes"),
         updates.get("status", "open"),
+        updates.get("is_adherent"),
+        updates.get("training_complete"),
+        updates.get("nutrition_complete"),
+        updates.get("cardio_complete"),
+        updates.get("steps_complete"),
         log_id
     ))
     row = cursor.fetchone()
@@ -367,7 +377,12 @@ def update_daily_log(log_id, updates):
             "cardio_minutes": row[12],
             "cardio_type": row[13],
             "training_session": row[14],
-            "notes": row[15]
+            "notes": row[15],
+            "is_adherent": row[16],
+            "training_complete": row[17],
+            "nutrition_complete": row[18],
+            "cardio_complete": row[19],
+            "steps_complete": row[20]
         }
     return None
 
