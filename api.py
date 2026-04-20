@@ -219,6 +219,17 @@ def create_training_template(user_id: int, template: TrainingTemplateCreate):
         raise HTTPException(status_code=500, detail="Failed to save template")
     return result
 
+@app.delete("/daily-log/today/{user_id}")
+def delete_today_log(user_id: int):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM daily_logs WHERE user_id = %s AND date = CURRENT_DATE
+    """, (user_id,))
+    conn.commit()
+    conn.close()
+    return {"message": "deleted"}
+
 @app.get("/training-template/{user_id}")
 def get_template(user_id: int):
     result = get_training_template(user_id)
