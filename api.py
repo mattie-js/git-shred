@@ -41,6 +41,11 @@ class DailyLogUpdate(BaseModel):
     training_session: str | None = None
     notes: str | None = None
     status: str | None = None
+    is_adherent: bool | None = None
+    training_complete: bool | None = None
+    nutrition_complete: bool | None = None
+    cardio_complete: bool | None = None
+    steps_complete: bool | None = None
 
 class LoginRequest(BaseModel):
     email: str
