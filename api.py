@@ -87,6 +87,7 @@ def create_user(user: UserCreate):
     return {
         "message": "Plan created successfully",
         "user_id": user_id,
+        "checkin_day": user.checkin_day,
         "plan": plan_data
     }
 
