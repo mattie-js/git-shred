@@ -131,7 +131,9 @@ def get_plan_by_user_id(user_id):
             "protein_rx": row[7],
             "carb_rx": row[8],
             "fat_rx": row[9],
-            "prescribed_steps": row[10]
+            "prescribed_steps": row[10],
+            # is_active is row[11]
+            "created_at": str(row[12]),  # 👈 add this
         }
     return None
 
