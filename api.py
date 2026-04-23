@@ -88,7 +88,8 @@ def create_user(user: UserCreate):
         "message": "Plan created successfully",
         "user_id": user_id,
         "checkin_day": user.checkin_day,
-        "plan": plan_data
+        "plan": plan_data,
+        "weight_lbs": user.weight
     }
 
 @app.post("/login")
@@ -104,7 +105,8 @@ def login(request: LoginRequest):
         "user_id": user_id,
         "email": user[1],
         "checkin_day": user[8],
-        "plan": plan
+        "plan": plan,
+        "weight_lbs": user[6]
     }
 
 from checkin import calculate_checkin
