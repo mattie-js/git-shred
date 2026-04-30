@@ -46,6 +46,7 @@ class DailyLogUpdate(BaseModel):
     nutrition_complete: bool | None = None
     cardio_complete: bool | None = None
     steps_complete: bool | None = None
+    supplements_complete: bool | None = None
 
 class LoginRequest(BaseModel):
     email: str
@@ -256,3 +257,28 @@ def get_supplement_template_endpoint(user_id: int):
     if not result:
         raise HTTPException(status_code=404, detail="No supplement template found")
     return result
+
+@app.get("/daily-log/history/{user_id}")
+def get_daily_log_history(user_id: int):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT date, step_count, cardio_minutes, is_adherent, status
+        FROM daily_logs
+        WHERE user_id = %s AND status = 'completed'
+        ORDER BY date ASC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return {
+        "history": [
+            {
+                "date": str(row[0]),
+                "step_count": row[1],
+                "cardio_minutes": row[2],
+                "is_adherent": row[3],
+                "status": row[4]
+            }
+            for row in rows
+        ]
+    }
