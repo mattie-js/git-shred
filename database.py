@@ -449,3 +449,51 @@ def get_training_template(user_id):
 if __name__ == "__main__":
     create_tables()
     print("Tables created successfully")
+def save_supplement_template(user_id, supplements):
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id FROM supplement_templates WHERE user_id = %s
+    """, (user_id,))
+    existing = cursor.fetchone()
+
+    if existing:
+        cursor.execute("""
+            UPDATE supplement_templates
+            SET supplements = %s
+            WHERE user_id = %s
+            RETURNING *
+        """, (json.dumps(supplements), user_id))
+    else:
+        cursor.execute("""
+            INSERT INTO supplement_templates (user_id, supplements)
+            VALUES (%s, %s)
+            RETURNING *
+        """, (user_id, json.dumps(supplements)))
+
+    row = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "supplements": row[2]
+    }
+
+def get_supplement_template(user_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT * FROM supplement_templates WHERE user_id = %s
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row[0],
+            "user_id": row[1],
+            "supplements": row[2]
+        }
+    return None

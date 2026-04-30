@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from main import calculate_tdee, calculate_plan
 from database import insert_user, insert_plan, get_user_by_email,get_plan_by_user_id, get_user_by_id 
-from database import create_connection, update_daily_log, save_training_template, get_training_template
+from database import create_connection, update_daily_log, save_training_template, get_training_template, save_supplement_template, get_supplement_template
 
 
 
@@ -239,4 +239,20 @@ def get_template(user_id: int):
     result = get_training_template(user_id)
     if not result:
         raise HTTPException(status_code=404, detail="No training template found")
+    return result
+class SupplementTemplateCreate(BaseModel):
+    supplements: list[str]
+
+@app.post("/supplement-template/{user_id}")
+def create_supplement_template(user_id: int, template: SupplementTemplateCreate):
+    result = save_supplement_template(user_id, template.supplements)
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to save supplement template")
+    return result
+
+@app.get("/supplement-template/{user_id}")
+def get_supplement_template_endpoint(user_id: int):
+    result = get_supplement_template(user_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="No supplement template found")
     return result
