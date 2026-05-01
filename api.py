@@ -263,7 +263,7 @@ def get_daily_log_history(user_id: int):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT date, step_count, cardio_minutes, is_adherent, status
+        SELECT date, step_count, cardio_minutes, is_adherent, status, bodyweight_lbs
         FROM daily_logs
         WHERE user_id = %s AND status = 'completed'
         ORDER BY date ASC
@@ -277,7 +277,8 @@ def get_daily_log_history(user_id: int):
                 "step_count": row[1],
                 "cardio_minutes": row[2],
                 "is_adherent": row[3],
-                "status": row[4]
+                "status": row[4],
+                "bodyweight_lbs": row[5]
             }
             for row in rows
         ]
