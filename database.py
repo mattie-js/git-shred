@@ -133,7 +133,7 @@ def get_plan_by_user_id(user_id):
             "fat_rx": row[9],
             "prescribed_steps": row[10],
             # is_active is row[11]
-            "created_at": str(row[12]),  # 👈 add this
+            "created_at": str(row[12]),
         }
     return None
 
@@ -201,7 +201,7 @@ def insert_checkin(checkin_data, calculated_data):
     conn.commit()
     conn.close()
 
-def get_last_two_checkins(user_id): ## pulls previous two rate of loss across week
+def get_last_two_checkins(user_id):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -236,7 +236,6 @@ def get_user_by_id(user_id):
     return result
 
 def get_or_create_daily_log(user_id):
-    # Step 1: get their active plan so we know today's targets
     plan = get_plan_by_user_id(user_id)
     if not plan:
         return None
@@ -246,13 +245,11 @@ def get_or_create_daily_log(user_id):
 
     today = date.today()
 
-    # Step 2: check if a log already exists for today
     cursor.execute("""
         SELECT * FROM daily_logs WHERE user_id = %s AND date = %s
     """, (user_id, today))
     row = cursor.fetchone()
 
-    # Step 3: if it exists, return it
     if row:
         conn.close()
         return {
@@ -274,23 +271,22 @@ def get_or_create_daily_log(user_id):
             "training_complete": row[17],
             "nutrition_complete": row[18],
             "cardio_complete": row[19],
-            "steps_complete": row[20]
+            "steps_complete": row[20],
+            "supplements_complete": row[21],
+            "bodyweight_lbs": row[22],
         }
 
-    # Step 4: if it doesn't exist, look up today's scheduled session
     cursor.execute("""
         SELECT schedule FROM training_templates WHERE user_id = %s
     """, (user_id,))
     template_row = cursor.fetchone()
 
-    # Step 5: figure out what day it is and pull the session
-    day_name = today.strftime("%A").lower()  # e.g. "wednesday"
+    day_name = today.strftime("%A").lower()
     training_session = None
     if template_row:
-        schedule = template_row[0]  # jsonb comes back as dict automatically
+        schedule = template_row[0]
         training_session = schedule.get(day_name)
 
-    # Step 6: create the new log row pre-populated with plan targets
     cursor.execute("""
         INSERT INTO daily_logs (
             user_id, plan_id, date, status,
@@ -325,7 +321,14 @@ def get_or_create_daily_log(user_id):
         "cardio_minutes": new_row[12],
         "cardio_type": new_row[13],
         "training_session": new_row[14],
-        "notes": new_row[15]
+        "notes": new_row[15],
+        "is_adherent": new_row[16],
+        "training_complete": new_row[17],
+        "nutrition_complete": new_row[18],
+        "cardio_complete": new_row[19],
+        "steps_complete": new_row[20],
+        "supplements_complete": new_row[21],
+        "bodyweight_lbs": new_row[22],
     }
 
 def update_daily_log(log_id, updates):
@@ -347,6 +350,8 @@ def update_daily_log(log_id, updates):
             nutrition_complete = %s,
             cardio_complete = %s,
             steps_complete = %s,
+            supplements_complete = %s,
+            bodyweight_lbs = %s,
             updated_at = now()
         WHERE id = %s
         RETURNING *
@@ -364,6 +369,8 @@ def update_daily_log(log_id, updates):
         updates.get("nutrition_complete"),
         updates.get("cardio_complete"),
         updates.get("steps_complete"),
+        updates.get("supplements_complete"),
+        updates.get("bodyweight_lbs"),
         log_id
     ))
     row = cursor.fetchone()
@@ -389,7 +396,9 @@ def update_daily_log(log_id, updates):
             "training_complete": row[17],
             "nutrition_complete": row[18],
             "cardio_complete": row[19],
-            "steps_complete": row[20]
+            "steps_complete": row[20],
+            "supplements_complete": row[21],
+            "bodyweight_lbs": row[22],
         }
     return None
 
@@ -397,14 +406,12 @@ def save_training_template(user_id, schedule):
     conn = create_connection()
     cursor = conn.cursor()
     
-    # Check if a template already exists for this user
     cursor.execute("""
         SELECT id FROM training_templates WHERE user_id = %s
     """, (user_id,))
     existing = cursor.fetchone()
     
     if existing:
-        # Update the existing template
         cursor.execute("""
             UPDATE training_templates
             SET schedule = %s
@@ -412,7 +419,6 @@ def save_training_template(user_id, schedule):
             RETURNING *
         """, (json.dumps(schedule), user_id))
     else:
-        # Create a new one
         cursor.execute("""
             INSERT INTO training_templates (user_id, schedule)
             VALUES (%s, %s)
@@ -445,10 +451,6 @@ def get_training_template(user_id):
         }
     return None
 
-
-if __name__ == "__main__":
-    create_tables()
-    print("Tables created successfully")
 def save_supplement_template(user_id, supplements):
     conn = create_connection()
     cursor = conn.cursor()
@@ -497,3 +499,7 @@ def get_supplement_template(user_id):
             "supplements": row[2]
         }
     return None
+
+if __name__ == "__main__":
+    create_tables()
+    print("Tables created successfully")
