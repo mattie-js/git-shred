@@ -47,6 +47,7 @@ class DailyLogUpdate(BaseModel):
     cardio_complete: bool | None = None
     steps_complete: bool | None = None
     supplements_complete: bool | None = None
+    bodyweight_lbs: float | None = None
 
 class LoginRequest(BaseModel):
     email: str
