@@ -212,6 +212,7 @@ def get_today_log(user_id: int):
 
 @app.put("/daily-log/{log_id}")
 def update_log(log_id: int, update: DailyLogUpdate):
+    print("UPDATE RECEIVED:", update.model_dump())
     result = update_daily_log(log_id, update.model_dump())
     if not result:
         raise HTTPException(status_code=404, detail="Log not found")
